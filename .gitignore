@@ -1,5 +1,6 @@
-# csv gerado
+# planilha gerado
 numeros_checados.csv
+numeros_checados.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
