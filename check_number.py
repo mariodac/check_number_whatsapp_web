@@ -10,6 +10,26 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
+
+def timestamp ():    
+    """ Retorna tempo  atual em segundos"""       
+    t = time.time()
+    return time.ctime(t)
+
+def initCountTime(print_time=False):
+    """ Inicia contagem de tempo """
+    if print_time:
+        print(timestamp())
+    t_i = time.time() 
+    return t_i
+
+def finishCountTime(t_i, print_time=False):
+    """ Encerra a contagem """
+    if print_time:
+        print(timestamp())
+    t_f = int(time.time() - t_i)
+    return t_f
+
 def get_path_file(wildcard):
     """Abre janela de dialogo para abrir arquivo
 
@@ -63,7 +83,7 @@ def check_internet():
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         logger.error('ERRO DURANTE EXECUÇÃO {}: TIPO - {} - ARQUIVO - {} - LINHA - {} - MESSAGE:{}'.format(check_internet.__name__, exc_type, fname, exc_tb.tb_lineno, exc_type.__doc__.replace('\n', '')))
         return False
-
+t_i = initCountTime()
 teste = get_csv()
 # lista para armazenar os numeros informados
 numbers = []
@@ -92,7 +112,7 @@ for number in teste['NUMEROS']:
         break """
 
 # https://web.whatsapp.com/send/?phone=%2B556499280948&text&type=phone_number&app_absent=0
-# monta lista com os numeros informados
+# monta lista de links com os numeros informados
 links_numbers = {x:'https://web.whatsapp.com/send/?phone=%2B55{}&text&type=phone_number&app_absent=0'.format(x) for x in numbers}
     
 
@@ -138,6 +158,7 @@ chrome_options.add_argument("--start-maximized")
 try:
     driver = webdriver.Chrome(service=service, options=chrome_options)
 except:
+    # mude o valor de acordo com o local de instalação do navegador chrome na sua máquina
     chrome_options.binary_location = "C:\Program Files\Google\Chrome\Application\chrome.exe"
     driver = webdriver.Chrome(service=service, options=chrome_options)
 # montando caminho do 
@@ -160,35 +181,49 @@ else:
 
 # wait para scanear QR code do celular
 wait = WebDriverWait(driver, 600)
-#data-testid confirm-popup
-# //div[@data-testid='confirm-popup']
 # espera para carregar interface do whatsapp
 time.sleep(10)
 chat_header = wait.until(EC.visibility_of_element_located((By.XPATH, "//header[@data-testid='chatlist-header']")))
+# dicionario para salvar numero checados
 check_numbers = {'COM WHATSAPP': [], 'SEM WHATSAPP':[]}
 if chat_header:
     wait = WebDriverWait(driver, 30)
     for number, link in links_numbers.items():
+        # abre link de conversa no numero
         driver.get(link)
-        # chat_header = wait.until(EC.visibility_of_element_located((By.XPATH, "//header[@data-testid='chatlist-header']")))
-        # chat_panel = wait.until(EC.visibility_of_element_located((By.ID, "main")))
-        element = None
+        # aguarda carregamento
+        time.sleep(10)
         try:
-            chat_panel = wait.until(EC.visibility_of_element_located((By.ID, "main")))
-        except:
-            time.sleep(30)
-        try:
+            # buscar popup de numero invalido
             element = driver.find_element(By.XPATH, "//div[@data-testid='confirm-popup']")
         except:
+            # se não encontrar atribui vazio para variavel
             element = None
         if element:
+            # adiciona informacao no log
             logger.info("Numero {} não existe conta no whatsapp")
             check_numbers.get('SEM WHATSAPP').append(number)  
             check_numbers.get('COM WHATSAPP').append('')  
             print('não existe')
         else:
+            # adiciona informacao no log
+            logger.info("Numero {} existe conta no whatsapp")
             check_numbers.get('COM WHATSAPP').append(number)  
             check_numbers.get('SEM WHATSAPP').append('')  
-    df = pd.DataFrame(data=check_numbers, index=False)
-    df.to_csv('numeros_checados.csv', encoding='utf-8')
+    # gerando dataframe com dicionario
+    df = pd.DataFrame(data=check_numbers)
+    # salva csv
+    df.to_csv('numeros_checados.csv', index=False, encoding='utf-8')
+    df.to_excel('numeros_checados.xlsx', index=False, sheet_name="numeros_checados")
+    # fecha navegador
     driver.quit()
+t_f = finishCountTime(t_i)
+segundos = t_f%60
+minutos = int(t_f/60)
+if minutos > 60:
+    horas = int(minutos/60)
+    minutos = minutos%60
+else:
+    horas = 0
+
+print("Executado em {} horas {} minutos {} segundos".format(horas, minutos, segundos))
