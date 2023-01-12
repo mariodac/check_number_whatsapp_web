@@ -54,7 +54,7 @@ def get_path_file(wildcard):
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         logger.error('ERRO DURANTE EXECUÇÃO {}: TIPO - {} - ARQUIVO - {} - LINHA - {} - MESSAGE:{}'.format(get_path_file.__name__, exc_type, fname, exc_tb.tb_lineno, exc_type.__doc__.replace('\n', '')))
 
-def get_csv():
+def get_csv(delimiter=";"):
     """Abre janela para selecionar arquivo csv e realiza a leitura
 
     Returns:
@@ -66,7 +66,7 @@ def get_csv():
             # filtro apenas arquivos csv
             csv_path = get_path_file("*.csv")
         # realiza leitura do csv
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path, delimiter=delimiter)
         return df
     except:
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -84,19 +84,22 @@ def check_internet():
         logger.error('ERRO DURANTE EXECUÇÃO {}: TIPO - {} - ARQUIVO - {} - LINHA - {} - MESSAGE:{}'.format(check_internet.__name__, exc_type, fname, exc_tb.tb_lineno, exc_type.__doc__.replace('\n', '')))
         return False
 t_i = initCountTime()
-teste = get_csv()
+dataframe = get_csv()
 # lista para armazenar os numeros informados
 numbers = []
-for number in teste['NUMEROS']:
-    number = number.replace('(', '')
-    number = number.replace(')', '')
-    number = number.replace(' ', '')
-    number = number.replace('-', '')
-    try:
-        int(number)
+for number in dataframe['Telefone']:
+    if type(number) == 'str':
+        number = number.replace('(', '')
+        number = number.replace(')', '')
+        number = number.replace(' ', '')
+        number = number.replace('-', '')
+        try:
+            int(number)
+            numbers.append(number)
+        except:
+            print()
+    else:
         numbers.append(number)
-    except:
-        print()
 # leitura via terminal dos numeros
 """ while True:
     print('O numero deve ser no formato 64993457867')
@@ -114,7 +117,6 @@ for number in teste['NUMEROS']:
 # https://web.whatsapp.com/send/?phone=%2B556499280948&text&type=phone_number&app_absent=0
 # monta lista de links com os numeros informados
 links_numbers = {x:'https://web.whatsapp.com/send/?phone=%2B55{}&text&type=phone_number&app_absent=0'.format(x) for x in numbers}
-    
 
 # configuração logger
 # hostname da máquina que executa o script
@@ -161,6 +163,7 @@ except:
     # mude o valor de acordo com o local de instalação do navegador chrome na sua máquina
     chrome_options.binary_location = "C:\Program Files\Google\Chrome\Application\chrome.exe"
     driver = webdriver.Chrome(service=service, options=chrome_options)
+    # driver2 = webdriver.Chrome(service=service, options=chrome_options)
 # montando caminho do 
 path_hostname = os.path.join(path_log, "check_number-{}".format(hostname))
 # nome do arquivo de log
@@ -187,12 +190,11 @@ chat_header = wait.until(EC.visibility_of_element_located((By.XPATH, "//header[@
 # dicionario para salvar numero checados
 check_numbers = {'COM WHATSAPP': [], 'SEM WHATSAPP':[]}
 if chat_header:
-    wait = WebDriverWait(driver, 30)
     for number, link in links_numbers.items():
         # abre link de conversa no numero
         driver.get(link)
         # aguarda carregamento
-        time.sleep(10)
+        time.sleep(5)
         try:
             # buscar popup de numero invalido
             element = driver.find_element(By.XPATH, "//div[@data-testid='confirm-popup']")
@@ -201,15 +203,18 @@ if chat_header:
             element = None
         if element:
             # adiciona informacao no log
-            logger.info("Numero {} não existe conta no whatsapp")
+            logger.info("Numero {} não existe conta no whatsapp".format(number))
+            # adiciona no dicionario
             check_numbers.get('SEM WHATSAPP').append(number)  
             check_numbers.get('COM WHATSAPP').append('')  
             print('não existe')
         else:
             # adiciona informacao no log
-            logger.info("Numero {} existe conta no whatsapp")
+            logger.info("Numero {} existe conta no whatsapp".format(number))
+            # adiciona no dicionario
             check_numbers.get('COM WHATSAPP').append(number)  
-            check_numbers.get('SEM WHATSAPP').append('')  
+            check_numbers.get('SEM WHATSAPP').append('')
+        
     # gerando dataframe com dicionario
     df = pd.DataFrame(data=check_numbers)
     # salva csv
@@ -225,5 +230,4 @@ if minutos > 60:
     minutos = minutos%60
 else:
     horas = 0
-
 print("Executado em {} horas {} minutos {} segundos".format(horas, minutos, segundos))
