@@ -157,6 +157,12 @@ else:
 chrome_options = Options()
 # inicia o chrome com a janela maximizada
 chrome_options.add_argument("--start-maximized")
+# desabilita funções não necessarias para esse script
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--disable-logging")
+chrome_options.add_argument("--log-level=3")
+chrome_options.add_argument("--ignore-certificate-errors")
+chrome_options.add_argument("--ignore-ssl-errors")
 try:
     driver = webdriver.Chrome(service=service, options=chrome_options)
 except:
