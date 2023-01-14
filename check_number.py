@@ -194,40 +194,56 @@ wait = WebDriverWait(driver, 600)
 time.sleep(10)
 chat_header = wait.until(EC.visibility_of_element_located((By.XPATH, "//header[@data-testid='chatlist-header']")))
 # dicionario para salvar numero checados
-check_numbers = {'COM WHATSAPP': [], 'SEM WHATSAPP':[]}
-if chat_header:
-    for number, link in links_numbers.items():
-        # abre link de conversa no numero
-        driver.get(link)
-        # aguarda carregamento
-        time.sleep(5)
-        try:
-            # buscar popup de numero invalido
-            element = driver.find_element(By.XPATH, "//div[@data-testid='confirm-popup']")
-        except:
-            # se não encontrar atribui vazio para variavel
-            element = None
-        if element:
-            # adiciona informacao no log
-            logger.info("Numero {} não existe conta no whatsapp".format(number))
-            # adiciona no dicionario
-            check_numbers.get('SEM WHATSAPP').append(number)  
-            check_numbers.get('COM WHATSAPP').append('')  
-            print('não existe')
-        else:
-            # adiciona informacao no log
-            logger.info("Numero {} existe conta no whatsapp".format(number))
-            # adiciona no dicionario
-            check_numbers.get('COM WHATSAPP').append(number)  
-            check_numbers.get('SEM WHATSAPP').append('')
-        
-    # gerando dataframe com dicionario
-    df = pd.DataFrame(data=check_numbers)
-    # salva csv
-    df.to_csv('numeros_checados.csv', index=False, encoding='utf-8')
-    df.to_excel('numeros_checados.xlsx', index=False, sheet_name="numeros_checados")
-    # fecha navegador
-    driver.quit()
+check_numbers = {'COM WHATSAPP': [], 'SEM WHATSAPP':[], 'COM ERRO':[]}
+try:
+    if chat_header:
+        for number, link in links_numbers.items():
+            try:
+                # abre link de conversa no numero
+                driver.get(link)
+                # aguarda carregamento
+                time.sleep(5)
+                try:
+                    # buscar popup de numero invalido
+                    element = driver.find_element(By.XPATH, "//div[@data-testid='confirm-popup']")
+                except:
+                    # se não encontrar atribui vazio para variavel
+                    element = None
+                if element:
+                    # adiciona informacao no log
+                    logger.info("Numero {} não existe conta no whatsapp".format(number))
+                    # adiciona no dicionario
+                    check_numbers.get('SEM WHATSAPP').append(number)  
+                    check_numbers.get('COM WHATSAPP').append('')  
+                    check_numbers.get('COM ERRO').append('')  
+                    print('não existe')
+                else:
+                    # adiciona informacao no log
+                    logger.info("Numero {} existe conta no whatsapp".format(number))
+                    # adiciona no dicionario
+                    check_numbers.get('COM WHATSAPP').append(number)  
+                    check_numbers.get('SEM WHATSAPP').append('')
+                    check_numbers.get('COM ERRO').append('') 
+            except:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                logger.error('TIPO {} - ARQUIVO {} - LINHA {} - MESSAGE:{}'.format(exc_type, fname, exc_tb.tb_lineno, exc_type.__doc__.replace('\n', '')))
+                check_numbers.get('COM ERRO').append(number)
+                logger.error('ERRO AO ENTRAR NO NUMERO {} utilizando o link {}'.format(number, link))
+                check_numbers.get('COM WHATSAPP').append('')
+                check_numbers.get('SEM WHATSAPP').append('')
+                continue
+        # gerando dataframe com dicionario
+        df = pd.DataFrame(data=check_numbers)
+        # salva csv
+        df.to_csv('numeros_checados.csv', index=False, encoding='utf-8')
+        df.to_excel('numeros_checados.xlsx', index=False, sheet_name="numeros_checados")
+        # fecha navegador
+        driver.quit()
+except:
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    logger.error('TIPO {} - ARQUIVO {} - LINHA {} - MESSAGE:{}'.format(exc_type, fname, exc_tb.tb_lineno, exc_type.__doc__.replace('\n', '')))
 t_f = finishCountTime(t_i)
 segundos = t_f%60
 minutos = int(t_f/60)
