@@ -215,8 +215,7 @@ try:
                     # adiciona no dicionario
                     check_numbers.get('SEM WHATSAPP').append(number)  
                     check_numbers.get('COM WHATSAPP').append('')  
-                    check_numbers.get('COM ERRO').append('')  
-                    print('não existe')
+                    check_numbers.get('COM ERRO').append('')
                 else:
                     # adiciona informacao no log
                     logger.info("Numero {} existe conta no whatsapp".format(number))
